@@ -15,11 +15,14 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-800">Trading Target & Stop-Loss Calculator</h1>
-                <p class="text-sm text-gray-500 mt-1">3 Stop-Loss & 3 Target Configuration Matrix</p>
+                <p class="text-sm text-gray-500 mt-1">Data auto-saves locally for up to 30 days</p>
             </div>
-            <div class="flex space-x-3">
+            <div class="flex flex-wrap gap-2">
                 <button onclick="addRow()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded shadow transition">
                     + Add Record
+                </button>
+                <button onclick="clearAllRecords()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded shadow transition">
+                    Clear Table
                 </button>
                 <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition">
                     Download PDF
@@ -44,38 +47,38 @@
                         
                         <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct1" value="-15" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-600">%
+                                <input type="number" id="pct1" value="-15" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-red-600">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Stop 1</span>
                         </th>
                         <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct2" value="-10" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-500">%
+                                <input type="number" id="pct2" value="-10" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-red-500">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Stop 2</span>
                         </th>
                         <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct3" value="-5" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-400">%
+                                <input type="number" id="pct3" value="-5" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-red-400">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Stop 3</span>
                         </th>
                         
                         <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct4" value="5" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-500">%
+                                <input type="number" id="pct4" value="5" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-green-500">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Target 1</span>
                         </th>
                         <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct5" value="10" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-600">%
+                                <input type="number" id="pct5" value="10" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-green-600">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Target 2</span>
                         </th>
                         <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
                             <div class="flex items-center space-x-1">
-                                <input type="number" id="pct6" value="20" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-700">%
+                                <input type="number" id="pct6" value="20" oninput="onHeaderPercentageChange()" class="w-12 text-center border rounded font-bold text-green-700">%
                             </div>
                             <span class="text-xs text-gray-500 block font-normal">Target 3</span>
                         </th>
@@ -102,10 +105,10 @@
 
     <script>
         const tbody = document.getElementById('table-body');
-        let activeChartInstance = null; // Holds the live Chart.js instance
+        let activeChartInstance = null;
         
-        // Append entry row matrix dynamically
-        function addRow() {
+        // --- Core Row Generation ---
+        function addRow(ticker = "", price = "") {
             const currentRows = tbody.querySelectorAll('tr').length;
             const nextIndex = currentRows + 1;
 
@@ -113,10 +116,10 @@
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="border border-gray-300 p-3 text-gray-500 font-medium row-number">${nextIndex}</td>
                     <td class="border border-gray-300 p-2">
-                        <input type="text" class="ticker-input w-full p-1 border rounded uppercase font-semibold text-gray-700" placeholder="e.g. BTSG">
+                        <input type="text" value="${ticker}" oninput="saveCurrentState()" class="ticker-input w-full p-1 border rounded uppercase font-semibold text-gray-700" placeholder="e.g. BTSG">
                     </td>
                     <td class="border border-gray-300 p-2">
-                        <input type="number" step="0.01" oninput="calculateRow(this.closest('tr'))" class="price-input w-full p-1 border rounded font-mono text-gray-800" placeholder="0.00">
+                        <input type="number" step="0.01" value="${price}" oninput="onPriceInputChange(this.closest('tr'))" class="price-input w-full p-1 border rounded font-mono text-gray-800" placeholder="0.00">
                     </td>
                     
                     <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/20 res-col-1" data-val="0">$0.00</td>
@@ -138,11 +141,17 @@
                 </tr>
             `;
             tbody.insertAdjacentHTML('beforeend', rowHTML);
+            
+            // Calculate calculations for the newly loaded row entry
+            const targetRow = tbody.lastElementChild;
+            calculateRow(targetRow);
+            saveCurrentState();
         }
 
         function deleteRow(button) {
             button.closest('tr').remove();
             updateRowNumbers();
+            saveCurrentState();
         }
 
         function updateRowNumbers() {
@@ -152,7 +161,7 @@
             });
         }
 
-        // Calculation single row values
+        // --- Calculation Logics ---
         function calculateRow(row) {
             const priceInput = row.querySelector('.price-input').value;
             const price = parseFloat(priceInput);
@@ -188,7 +197,100 @@
             rows.forEach(row => calculateRow(row));
         }
 
-        // Open the Popup Modal and Generate the Dynamic Graph
+        function onPriceInputChange(row) {
+            calculateRow(row);
+            saveCurrentState();
+        }
+
+        function onHeaderPercentageChange() {
+            calculateAll();
+            saveCurrentState();
+        }
+
+        // --- 30-Day Local Storage Save/Load Infrastructure ---
+        function saveCurrentState() {
+            const rows = tbody.querySelectorAll('tr');
+            const recordsData = [];
+
+            rows.forEach(row => {
+                const ticker = row.querySelector('.ticker-input').value;
+                const price = row.querySelector('.price-input').value;
+                recordsData.push({ ticker, price });
+            });
+
+            const stateToSave = {
+                timestamp: new Date().getTime(), // Used to trace the 30-day expiration check
+                percentages: [
+                    document.getElementById('pct1').value,
+                    document.getElementById('pct2').value,
+                    document.getElementById('pct3').value,
+                    document.getElementById('pct4').value,
+                    document.getElementById('pct5').value,
+                    document.getElementById('pct6').value
+                ],
+                records: recordsData
+            };
+
+            localStorage.setItem('tradingCalculatorState', JSON.stringify(stateToSave));
+        }
+
+        function loadSavedState() {
+            const savedString = localStorage.getItem('tradingCalculatorState');
+            if (!savedString) {
+                loadBlankDefaultLayout();
+                return;
+            }
+
+            try {
+                const savedState = JSON.parse(savedString);
+                const completeOneMonthInMs = 30 * 24 * 60 * 60 * 1000;
+                const currentTime = new Date().getTime();
+
+                // If saved state is older than 30 days, purge it and clear layout
+                if (currentTime - savedState.timestamp > completeOneMonthInMs) {
+                    localStorage.removeItem('tradingCalculatorState');
+                    loadBlankDefaultLayout();
+                    return;
+                }
+
+                // Restore percentage header values
+                if (savedState.percentages && savedState.percentages.length === 6) {
+                    for (let i = 1; i <= 6; i++) {
+                        document.getElementById(`pct${i}`).value = savedState.percentages[i - 1];
+                    }
+                }
+
+                // Restore rows
+                if (savedState.records && savedState.records.length > 0) {
+                    tbody.innerHTML = ""; // Clear loader container
+                    savedState.records.forEach(rec => {
+                        addRow(rec.ticker, rec.price);
+                    });
+                } else {
+                    loadBlankDefaultLayout();
+                }
+
+            } catch (e) {
+                console.error("Error formatting saved profile data state:", e);
+                loadBlankDefaultLayout();
+            }
+        }
+
+        function loadBlankDefaultLayout() {
+            tbody.innerHTML = "";
+            for (let i = 0; i < 3; i++) {
+                addRow("", "");
+            }
+        }
+
+        function clearAllRecords() {
+            if (confirm("Are you sure you want to completely clear the entire layout? This will also wipe out your browser's saved cache for this page.")) {
+                localStorage.removeItem('tradingCalculatorState');
+                loadBlankDefaultLayout();
+            }
+        }
+
+        // --- Chart View Window Handlers ---
         function openChartPopup(row) {
             const ticker = row.querySelector('.ticker-input').value.toUpperCase() || 'Asset';
             const entryPrice = parseFloat(row.querySelector('.price-input').value) || 0;
@@ -198,7 +300,6 @@
                 return;
             }
 
-            // Read the dynamic live header tags text labels
             const labels = [
                 'Stop 1 (' + document.getElementById('pct1').value + '%)',
                 'Stop 2 (' + document.getElementById('pct2').value + '%)',
@@ -209,7 +310,6 @@
                 'Target 3 (' + document.getElementById('pct6').value + '%)'
             ];
 
-            // Harvest values
             const values = [
                 parseFloat(row.querySelector('.res-col-1').getAttribute('data-val')),
                 parseFloat(row.querySelector('.res-col-2').getAttribute('data-val')),
@@ -220,13 +320,9 @@
                 parseFloat(row.querySelector('.res-col-6').getAttribute('data-val'))
             ];
 
-            // Update modal text heading title layout
             document.getElementById('modalTitle').textContent = `Risk & Reward matrix profile view for: ${ticker}`;
 
-            // Clean existing canvas instances to prevent overlap engine memory leaks
-            if (activeChartInstance) {
-                activeChartInstance.destroy();
-            }
+            if (activeChartInstance) { activeChartInstance.destroy(); }
 
             const ctx = document.getElementById('popChart').getContext('2d');
             activeChartInstance = new Chart(ctx, {
@@ -237,13 +333,9 @@
                         label: 'Price Threshold Level ($)',
                         data: values,
                         backgroundColor: [
-                            'rgba(239, 68, 68, 0.7)',  // Stop 1 Red
-                            'rgba(248, 113, 113, 0.7)', // Stop 2 Red
-                            'rgba(252, 165, 165, 0.7)', // Stop 3 Red
-                            'rgba(107, 114, 128, 0.8)', // Entry Neutral Grey
-                            'rgba(134, 239, 172, 0.7)', // Target 1 Green
-                            'rgba(74, 222, 128, 0.7)',  // Target 2 Green
-                            'rgba(34, 197, 94, 0.7)'    // Target 3 Green
+                            'rgba(239, 68, 68, 0.7)', 'rgba(248, 113, 113, 0.7)', 'rgba(252, 165, 165, 0.7)',
+                            'rgba(107, 114, 128, 0.8)',
+                            'rgba(134, 239, 172, 0.7)', 'rgba(74, 222, 128, 0.7)', 'rgba(34, 197, 94, 0.7)'
                         ],
                         borderColor: [
                             '#dc2626', '#ef4444', '#f87171', '#4b5563', '#22c55e', '#16a34a', '#15803d'
@@ -256,15 +348,11 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: {
-                            beginAtZero: false,
-                            title: { display: true, text: 'Value in USD ($)', font: { weight: 'bold' } }
-                        }
+                        y: { beginAtZero: false, title: { display: true, text: 'Value in USD ($)', font: { weight: 'bold' } } }
                     }
                 }
             });
 
-            // Reveal modal UI
             const modal = document.getElementById('chartModal');
             modal.classList.remove('hidden');
             setTimeout(() => modal.classList.remove('opacity-0'), 10);
@@ -276,12 +364,7 @@
             setTimeout(() => modal.classList.add('hidden'), 200);
         }
 
-        // Initialize with 3 empty structural lines
-        for (let i = 0; i < 3; i++) {
-            addRow();
-        }
-
-        // Generate Landscape PDF Report Document Output File
+        // --- Export Engine ---
         function downloadPDF() {
             const elementsToHide = document.querySelectorAll('.exclude-pdf');
             elementsToHide.forEach(el => el.style.display = 'none');
@@ -289,7 +372,7 @@
             const element = document.getElementById('pdf-content');
             const options = {
                 margin:       [0.4, 0.4, 0.4, 0.4],
-                filename:     'Trading_Calculations_Extended.pdf',
+                filename:     'Trading_Calculations_Stored.pdf',
                 image:        { type: 'jpeg', quality: 0.98 },
                 html2canvas:  { scale: 2, useCORS: true },
                 jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
@@ -299,6 +382,11 @@
                 elementsToHide.forEach(el => el.style.display = '');
             });
         }
+
+        // Trigger safe loader state evaluation upon system bootstrap mount
+        window.onload = function() {
+            loadSavedState();
+        };
     </script>
 </body>
 </html>
