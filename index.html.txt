@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Target & Stop-Loss Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Trading Target & Stop-Loss Calculator</h1>
+            <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                Download PDF
+            </button>
+        </div>
+
+        <div class="mb-6 p-4 bg-gray-50 rounded border border-gray-200 text-sm text-gray-600">
+            <p class="font-semibold mb-1">Formulas:</p>
+            <ul class="list-disc pl-5 space-y-1">
+                <li>Stop-Loss: $\text{Price} \times (1 - \text{Percentage})$</li>
+                <li>Take-Profit / Target: $\text{Price} \times (1 + \text{Percentage})$</li>
+            </ul>
+        </div>
+
+        <div id="pdf-content" class="bg-white p-2">
+            <table class="w-full border-collapse border border-gray-300">
+                <thead>
+                    <tr class="bg-gray-100 text-gray-700">
+                        <th class="border border-gray-300 p-3 text-left w-12">#</th>
+                        <th class="border border-gray-300 p-3 text-left">Script Ticker</th>
+                        <th class="border border-gray-300 p-3 text-left">Entry Price ($)</th>
+                        <th class="border border-gray-300 p-3 text-left bg-red-50">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct1" value="-15" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-600">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Stop Loss</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-red-50">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct2" value="-10" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-500">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Stop Loss</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-green-50">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct3" value="5" oninput="calculateAll()" class="w-16 text-center border rounded font-bold text-green-600">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Target</span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    </tbody>
+            </table>
+        </div>
+
+        <div class="mt-4 text-xs text-gray-400 italic">
+            * Note: Changing the percentages in the header will instantly update the calculations for all rows.
+        </div>
+    </div>
+
+    <script>
+        // Generate 8 empty initialization rows matching your image layout
+        const totalRows = 8;
+        const tbody = document.getElementById('table-body');
+        
+        // Initial sample data just to showcase functionality immediately
+        const initialData = [
+            { ticker: "BTSG", price: 59.21 },
+            { ticker: "BWAY", price: 14.10 },
+            { ticker: "ELVA", price: 9.44 },
+            { ticker: "KGLD", price: 27.99 },
+            { ticker: "KSLV", price: 28.35 },
+            { ticker: "NomD", price: 10.27 },
+            { ticker: "SLVO", price: 77.00 },
+            { ticker: "VISY", price: 11.63 }
+        ];
+
+        for (let i = 0; i < totalRows; i++) {
+            const rowData = initialData[i] || { ticker: "", price: "" };
+            const rowHTML = `
+                <tr class="hover:bg-gray-50">
+                    <td class="border border-gray-300 p-3 text-gray-500 font-medium">${i + 1}</td>
+                    <td class="border border-gray-300 p-2">
+                        <input type="text" value="${rowData.ticker}" class="ticker-input w-full p-1 border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white rounded uppercase" placeholder="e.g. AAPL">
+                    </td>
+                    <td class="border border-gray-300 p-2">
+                        <input type="number" step="0.01" value="${rowData.price}" oninput="calculateRow(this.closest('tr'))" class="price-input w-full p-1 border border-transparent hover:border-gray-300 focus:border-blue-500 focus:bg-white rounded font-mono" placeholder="0.00">
+                    </td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/30 res-col-1">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/30 res-col-2">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-green-50/30 res-col-3">$0.00</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', rowHTML);
+        }
+
+        // Calculation logic
+        function calculateRow(row) {
+            const priceInput = row.querySelector('.price-input').value;
+            const price = parseFloat(priceInput);
+
+            // Pull percentages from headers
+            const p1 = parseFloat(document.getElementById('pct1').value) / 100;
+            const p2 = parseFloat(document.getElementById('pct2').value) / 100;
+            const p3 = parseFloat(document.getElementById('pct3').value) / 100;
+
+            const col1 = row.querySelector('.res-col-1');
+            const col2 = row.querySelector('.res-col-2');
+            const col3 = row.querySelector('.res-col-3');
+
+            if (isNaN(price) || price <= 0) {
+                col1.textContent = "$0.00";
+                col2.textContent = "$0.00";
+                col3.textContent = "$0.00";
+                return;
+            }
+
+            // Standard Formula application: Price * (1 + (Percentage/100))
+            // Works for both negative values (-15% becomes 1 + (-0.15) = 0.85) and positive values.
+            col1.textContent = "$" + (price * (1 + p1)).toFixed(2);
+            col2.textContent = "$" + (price * (1 + p2)).toFixed(2);
+            col3.textContent = "$" + (price * (1 + p3)).toFixed(2);
+        }
+
+        function calculateAll() {
+            const rows = document.querySelectorAll('#table-body tr');
+            rows.forEach(row => calculateRow(row));
+        }
+
+        // Run calculation once at startup
+        calculateAll();
+
+        // PDF Generation function using html2pdf
+        function downloadPDF() {
+            const element = document.getElementById('pdf-content');
+            
+            // Temporary visual optimization for clean PDF output (hiding input borders if any)
+            const options = {
+                margin:       0.5,
+                filename:     'Trading_Calculations.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+
+            html2pdf().set(options).from(element).save();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Target & Stop-Loss Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
+
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Trading Target & Stop-Loss Calculator</h1>
+                <p class="text-sm text-gray-500 mt-1">3 Stop-Loss & 3 Target Configuration Matrix</p>
+            </div>
+            <div class="flex space-x-3">
+                <button onclick="addRow()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                    + Add Record
+                </button>
+                <button onclick="downloadPDF()" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded shadow transition">
+                    Download PDF
+                </button>
+            </div>
+        </div>
+
+        <div id="pdf-content" class="bg-white p-2 overflow-x-auto">
+            <table class="w-full border-collapse border border-gray-300 min-w-[1000px]">
+                <thead>
+                    <tr class="bg-gray-800 text-white text-center text-xs font-bold uppercase tracking-wider">
+                        <th colspan="3" class="border border-gray-700 p-2 bg-gray-900">Asset Data Input</th>
+                        <th colspan="3" class="border border-gray-700 p-2 bg-red-900">Stop-Loss Options</th>
+                        <th colspan="3" class="border border-gray-700 p-2 bg-green-900">Take-Profit Targets</th>
+                        <th class="border border-gray-700 p-2 bg-gray-900 exclude-pdf w-32">Visuals & Controls</th>
+                    </tr>
+                    
+                    <tr class="bg-gray-100 text-gray-700 text-sm font-semibold">
+                        <th class="border border-gray-300 p-3 text-left w-12">#</th>
+                        <th class="border border-gray-300 p-3 text-left w-40">Script Ticker</th>
+                        <th class="border border-gray-300 p-3 text-left w-40">Entry Price ($)</th>
+                        
+                        <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct1" value="-15" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-600">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Stop 1</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct2" value="-10" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-500">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Stop 2</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-red-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct3" value="-5" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-red-400">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Stop 3</span>
+                        </th>
+                        
+                        <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct4" value="5" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-500">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Target 1</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct5" value="10" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-600">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Target 2</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-left bg-green-50 w-28">
+                            <div class="flex items-center space-x-1">
+                                <input type="number" id="pct6" value="20" oninput="calculateAll()" class="w-12 text-center border rounded font-bold text-green-700">%
+                            </div>
+                            <span class="text-xs text-gray-500 block font-normal">Target 3</span>
+                        </th>
+                        <th class="border border-gray-300 p-3 text-center w-32 exclude-pdf">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="chartModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-lg max-w-3xl w-full p-6 shadow-2xl relative mx-4">
+            <div class="flex justify-between items-center border-b pb-3 mb-4">
+                <h3 id="modalTitle" class="text-xl font-bold text-gray-800">Asset Risk Profile Chart</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 font-bold text-2xl">&times;</button>
+            </div>
+            <div class="w-full h-80">
+                <canvas id="popChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tbody = document.getElementById('table-body');
+        let activeChartInstance = null; // Holds the live Chart.js instance
+        
+        // Append entry row matrix dynamically
+        function addRow() {
+            const currentRows = tbody.querySelectorAll('tr').length;
+            const nextIndex = currentRows + 1;
+
+            const rowHTML = `
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <td class="border border-gray-300 p-3 text-gray-500 font-medium row-number">${nextIndex}</td>
+                    <td class="border border-gray-300 p-2">
+                        <input type="text" class="ticker-input w-full p-1 border rounded uppercase font-semibold text-gray-700" placeholder="e.g. BTSG">
+                    </td>
+                    <td class="border border-gray-300 p-2">
+                        <input type="number" step="0.01" oninput="calculateRow(this.closest('tr'))" class="price-input w-full p-1 border rounded font-mono text-gray-800" placeholder="0.00">
+                    </td>
+                    
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/20 res-col-1" data-val="0">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/20 res-col-2" data-val="0">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-red-50/20 res-col-3" data-val="0">$0.00</td>
+                    
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-green-50/20 res-col-4" data-val="0">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-green-50/20 res-col-5" data-val="0">$0.00</td>
+                    <td class="border border-gray-300 p-3 font-mono text-gray-700 bg-green-50/20 res-col-6" data-val="0">$0.00</td>
+                    
+                    <td class="border border-gray-300 p-2 text-center exclude-pdf space-x-1 whitespace-nowrap">
+                        <button onclick="openChartPopup(this.closest('tr'))" class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold py-1 px-2 rounded transition shadow-sm">
+                            Chart
+                        </button>
+                        <button onclick="deleteRow(this)" class="bg-red-100 text-red-600 hover:bg-red-200 text-xs font-semibold py-1 px-2 rounded transition">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', rowHTML);
+        }
+
+        function deleteRow(button) {
+            button.closest('tr').remove();
+            updateRowNumbers();
+        }
+
+        function updateRowNumbers() {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach((row, index) => {
+                row.querySelector('.row-number').textContent = index + 1;
+            });
+        }
+
+        // Calculation single row values
+        function calculateRow(row) {
+            const priceInput = row.querySelector('.price-input').value;
+            const price = parseFloat(priceInput);
+
+            const percentages = [
+                parseFloat(document.getElementById('pct1').value) / 100 || 0,
+                parseFloat(document.getElementById('pct2').value) / 100 || 0,
+                parseFloat(document.getElementById('pct3').value) / 100 || 0,
+                parseFloat(document.getElementById('pct4').value) / 100 || 0,
+                parseFloat(document.getElementById('pct5').value) / 100 || 0,
+                parseFloat(document.getElementById('pct6').value) / 100 || 0
+            ];
+
+            if (isNaN(price) || price <= 0) {
+                for (let i = 1; i <= 6; i++) {
+                    const cell = row.querySelector(`.res-col-${i}`);
+                    cell.textContent = "$0.00";
+                    cell.setAttribute('data-val', '0');
+                }
+                return;
+            }
+
+            for (let i = 1; i <= 6; i++) {
+                const calculatedValue = price * (1 + percentages[i - 1]);
+                const cell = row.querySelector(`.res-col-${i}`);
+                cell.textContent = "$" + calculatedValue.toFixed(2);
+                cell.setAttribute('data-val', calculatedValue.toFixed(2));
+            }
+        }
+
+        function calculateAll() {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => calculateRow(row));
+        }
+
+        // Open the Popup Modal and Generate the Dynamic Graph
+        function openChartPopup(row) {
+            const ticker = row.querySelector('.ticker-input').value.toUpperCase() || 'Asset';
+            const entryPrice = parseFloat(row.querySelector('.price-input').value) || 0;
+
+            if (entryPrice <= 0) {
+                alert("Please enter a valid entry price before compiling a metric graph visual chart.");
+                return;
+            }
+
+            // Read the dynamic live header tags text labels
+            const labels = [
+                'Stop 1 (' + document.getElementById('pct1').value + '%)',
+                'Stop 2 (' + document.getElementById('pct2').value + '%)',
+                'Stop 3 (' + document.getElementById('pct3').value + '%)',
+                'Entry Price ($)',
+                'Target 1 (' + document.getElementById('pct4').value + '%)',
+                'Target 2 (' + document.getElementById('pct5').value + '%)',
+                'Target 3 (' + document.getElementById('pct6').value + '%)'
+            ];
+
+            // Harvest values
+            const values = [
+                parseFloat(row.querySelector('.res-col-1').getAttribute('data-val')),
+                parseFloat(row.querySelector('.res-col-2').getAttribute('data-val')),
+                parseFloat(row.querySelector('.res-col-3').getAttribute('data-val')),
+                entryPrice,
+                parseFloat(row.querySelector('.res-col-4').getAttribute('data-val')),
+                parseFloat(row.querySelector('.res-col-5').getAttribute('data-val')),
+                parseFloat(row.querySelector('.res-col-6').getAttribute('data-val'))
+            ];
+
+            // Update modal text heading title layout
+            document.getElementById('modalTitle').textContent = `Risk & Reward matrix profile view for: ${ticker}`;
+
+            // Clean existing canvas instances to prevent overlap engine memory leaks
+            if (activeChartInstance) {
+                activeChartInstance.destroy();
+            }
+
+            const ctx = document.getElementById('popChart').getContext('2d');
+            activeChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Price Threshold Level ($)',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(239, 68, 68, 0.7)',  // Stop 1 Red
+                            'rgba(248, 113, 113, 0.7)', // Stop 2 Red
+                            'rgba(252, 165, 165, 0.7)', // Stop 3 Red
+                            'rgba(107, 114, 128, 0.8)', // Entry Neutral Grey
+                            'rgba(134, 239, 172, 0.7)', // Target 1 Green
+                            'rgba(74, 222, 128, 0.7)',  // Target 2 Green
+                            'rgba(34, 197, 94, 0.7)'    // Target 3 Green
+                        ],
+                        borderColor: [
+                            '#dc2626', '#ef4444', '#f87171', '#4b5563', '#22c55e', '#16a34a', '#15803d'
+                        ],
+                        borderWidth: 1.5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: 'Value in USD ($)', font: { weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+
+            // Reveal modal UI
+            const modal = document.getElementById('chartModal');
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('chartModal');
+            modal.classList.add('opacity-0');
+            setTimeout(() => modal.classList.add('hidden'), 200);
+        }
+
+        // Initialize with 3 empty structural lines
+        for (let i = 0; i < 3; i++) {
+            addRow();
+        }
+
+        // Generate Landscape PDF Report Document Output File
+        function downloadPDF() {
+            const elementsToHide = document.querySelectorAll('.exclude-pdf');
+            elementsToHide.forEach(el => el.style.display = 'none');
+
+            const element = document.getElementById('pdf-content');
+            const options = {
+                margin:       [0.4, 0.4, 0.4, 0.4],
+                filename:     'Trading_Calculations_Extended.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+
+            html2pdf().set(options).from(element).save().then(() => {
+                elementsToHide.forEach(el => el.style.display = '');
+            });
+        }
+    </script>
+</body>
+</html>
